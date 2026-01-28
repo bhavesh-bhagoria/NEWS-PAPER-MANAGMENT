@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/customer_dashboard.css') }}">
+</head>
+<body>
+
+<header>
+    <div class="header-left">
+        <h1>Welcome, {{ name }}</h1>
+    </div>
+    <div class="header-right">
+        <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+    </div>
+</header>
+
+<main>
+    <section class="summary-section">
+        <div class="summary-card">
+            <h3>Current Month Bill</h3>
+            <p><strong>Newspaper:</strong> {{ subscription.newspaper_name if subscription else "N/A" }}</p>
+            <p><strong>Rate per Day:</strong> ₹{{ subscription.rate_per_day if subscription else "0.00" }}</p>
+            <p><strong>Total Amount Due:</strong> ₹{{ current_month_bill }}</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Total Paid</h3>
+            <p><strong>Amount Paid:</strong> ₹{{ total_paid }}</p>
+        </div>
+    </section>
+
+    <section class="last-month-section">
+        <h2>Last Month Bill ({{ last_month_name }})</h2>
+        {% if last_month_bill %}
+            <p><strong>Amount:</strong> ₹{{ last_month_bill.amount }}</p>
+            <p><strong>Status:</strong> {{ "Paid" if last_month_bill.amount_status==2 else "Unpaid" }}</p>
+        {% else %}
+            <p>No bill found.</p>
+        {% endif %}
+    </section>
+
+    <section class="actions">
+        <a href="{{ url_for('view_all_bills') }}" class="btn-action">View All Bills</a>
+        <a href="{{ url_for('pause_request') }}" class="btn-action">Pause Delivery</a>
+    </section>
+</main>
+
+</body>
+</html>

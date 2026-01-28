@@ -1,0 +1,443 @@
+/* ================================
+   General Admin / Customer Styles
+================================= */
+.admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.header h2 {
+    margin: 0;
+}
+
+.header p {
+    color: #666;
+    font-size: 14px;
+}
+
+.logout-btn {
+    padding: 8px 20px;
+    background: #333;
+    color: white;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.back-btn {
+    padding: 8px 16px;
+    background: #000;
+    color: #fff;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.back-btn:hover {
+    background: #333;
+}
+
+.period-box {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.period-box p {
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.period-box h3 {
+    margin: 10px 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-box {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-box p {
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.stat-box h2 {
+    margin: 0;
+    font-size: 32px;
+}
+
+.notifications {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.notifications h3 {
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.badge {
+    background: #000;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+.badge-new {
+    background: #000;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.badge-seen {
+    background: #e0e0e0;
+    color: #666;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.notification-item h4 {
+    margin: 0 0 5px 0;
+}
+
+.notification-item p {
+    margin: 3px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 15px;
+    background: #000;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 15px;
+}
+
+.btn-secondary {
+    width: 100%;
+    padding: 15px;
+    background: white;
+    color: #000;
+    border: 1px solid #000;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 15px;
+}
+
+.btn-small {
+    padding: 8px 16px;
+    background: #000;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.search-box {
+    margin-bottom: 20px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.customer-list, .bill-list {
+    margin-top: 20px;
+}
+
+.customer-card, .bill-card, .request-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.customer-card h3, .bill-card h3, .request-card h4 {
+    margin: 0 0 8px 0;
+}
+
+.customer-card p, .bill-card p, .request-card p {
+    margin: 4px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.customer-actions, .bill-actions, .request-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-active {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-paused {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.status-paid {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-unpaid {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.form-box {
+    background: #f9f9f9;
+    padding: 30px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.form-buttons button {
+    flex: 1;
+}
+
+.filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.filters select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.tab {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.tab.active {
+    border-bottom-color: #000;
+    font-weight: bold;
+}
+
+.tab-content {
+    margin-top: 20px;
+}
+
+/* ======================================
+   Customer Dashboard Specific Styles
+====================================== */
+body.customer-dashboard {
+    background-color: #fff;
+    color: #000;
+    font-family: Arial, sans-serif;
+}
+
+header.customer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background-color: #fff;
+    border-bottom: 1px solid #ccc;
+}
+
+header.customer-header h1 {
+    margin: 0;
+    font-size: 28px;
+    color: #000;
+}
+
+header.customer-header .btn-logout {
+    text-decoration: none;
+    background-color: #000;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+header.customer-header .btn-logout:hover {
+    background-color: #333;
+}
+
+/* Summary Section */
+.summary-section {
+    display: flex;
+    gap: 20px;
+    padding: 40px;
+}
+
+.summary-card {
+    flex: 1;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.summary-card h3 {
+    margin-top: 0;
+    color: #000;
+}
+
+.summary-card p {
+    margin: 8px 0;
+    color: #000;
+}
+
+/* Last Month Bill Section */
+.last-month-section {
+    padding: 0 40px 40px 40px;
+}
+
+.last-month-section h2 {
+    color: #000;
+    margin-bottom: 15px;
+}
+
+.last-month-section p {
+    color: #000;
+    margin: 5px 0;
+}
+
+/* Actions Section */
+.actions {
+    padding: 0 40px 40px 40px;
+    display: flex;
+    gap: 20px;
+}
+
+.btn-action {
+    text-decoration: none;
+    background-color: #000;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.btn-action:hover {
+    background-color: #333;
+}
+
+/* Pause Delivery Form adjustments */
+.form-box.customer-form {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.form-box.customer-form h2 {
+    margin-top: 0;
+    color: #000;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.form-box.customer-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #000;
+}
+
+.form-box.customer-form input,
+.form-box.customer-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #000;
+}
+
+.form-buttons.customer-buttons {
+    text-align: center;
+}

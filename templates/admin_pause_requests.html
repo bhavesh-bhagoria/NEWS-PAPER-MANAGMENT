@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>All Pause Requests</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_pause_requests.css') }}">
+</head>
+<body>
+    <div class="admin-container">
+        <div class="header">
+            <a href="{{ url_for('admin_dashboard') }}" class="back-btn">← Back</a>
+            <h2>All Pause Requests</h2>
+        </div>
+
+        <div class="tab-content">
+            {% if requests %}
+                {% for req in requests %}
+                <div class="request-card">
+                    <div class="request-info">
+                        <h4>{{ req.customer_name }}</h4>
+                        <p>Pause: {{ req.pause_start.strftime('%d/%m/%Y') }} - {{ req.pause_end.strftime('%d/%m/%Y') }}</p>
+                        {% if req.reason %}
+                        <p>Reason: {{ req.reason }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="request-actions">
+                        {% if req.seen == 0 %}
+                           <a href="{{ url_for('mark_seen', pause_id=req.pause_id) }}" class="btn-small">
+                            Mark Seen
+                            </a>
+                        {% else %}
+                           <span class="badge-seen">SEEN</span>
+                        {% endif %}
+
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="no-requests">No pause requests found.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Customer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+<div class="admin-container">
+    <div class="header">
+        <a href="{{ url_for('admin_dashboard') }}" class="back-btn">← Back</a>
+        <h2>Add Customer</h2>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                <br><br>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="form-box">
+        <label>Customer Name *</label><br><br>
+        <input type="text" name="name" placeholder="Enter customer name" required><br><br>
+
+        <label>Area / Locality *</label><br><br>
+        <input type="text" name="area" placeholder="Enter area/locality" required><br><br>
+
+        <label>Landmark / Building</label><br><br>
+        <input type="text" name="landmark_building" placeholder="e.g., Near Apollo Hospital"><br><br>
+
+        <label>Flat / House / Office No.</label><br><br>
+        <input type="text" name="flat_house_office_no" placeholder="e.g., Flat 202"><br><br>
+
+        <label>Mobile Number *</label><br><br>
+        <input type="tel" name="mobile" placeholder="10-digit mobile number" pattern="[0-9]{10}" required><br><br>
+
+        <label>Password *</label><br><br>
+        <input type="password" name="password" placeholder="Set password for customer" required><br><br>
+
+        <label>Newspaper Type *</label><br><br>
+        <input type="text" name="newspaper" placeholder="e.g., The Times, The Hindu" required><br><br>
+
+        <label>Daily Price (₹) *</label><br><br>
+        <input type="number" name="rate" step="0.01" placeholder="Enter daily price" required><br><br>
+
+        <label>Subscription Start Date *</label><br><br>
+        <input type="date" name="start_date" required><br><br>
+
+        <div class="form-buttons">
+            <a href="{{ url_for('admin_add_customer') }}" class="btn-secondary">Cancel</a><br><br>
+            <button type="submit" class="btn-primary">Save Customer</button><br><br>
+        </div>
+    </form>
+</div>
+</body>
+</html>

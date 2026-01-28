@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>All Bills</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/customer_dashboard.css') }}">
+</head>
+<body>
+
+<div class="admin-container">
+    <a href="{{ url_for('customer_dashboard') }}" class="back-btn">Back</a>
+    <h2>All Bills</h2>
+
+    <div class="bill-list">
+        {% if bills %}
+            {% for bill in bills %}
+                <div class="bill-card">
+                    <div>
+                        <h3>{{ bill.bill_month }}</h3>
+                        <p>Total Amount: ₹{{ bill.amount }}</p>
+                        <p>Status: {{ bill.status }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No bills found.</p>
+        {% endif %}
+    </div>
+</div>
+
+</body>
+</html>

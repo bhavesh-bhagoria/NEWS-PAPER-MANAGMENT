@@ -1,0 +1,73 @@
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #f4f6f8;
+    margin: 0;
+    padding: 0;
+}
+
+.page-container {
+    width: 90%;
+    margin: 30px auto;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.summary-box {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 30px;
+}
+
+.summary-card {
+    background: white;
+    padding: 20px;
+    width: 40%;
+    text-align: center;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.bill-section {
+    margin-top: 40px;
+}
+
+.bill-title {
+    font-size: 22px;
+    margin-bottom: 15px;
+    color: #444;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+th, td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #2c3e50;
+    color: white;
+}
+
+tr:hover {
+    background-color: #f2f2f2;
+}
+
+.no-data {
+    text-align: center;
+    padding: 20px;
+    font-size: 18px;
+    color: #888;
+}

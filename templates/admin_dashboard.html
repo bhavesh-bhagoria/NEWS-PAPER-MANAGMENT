@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agent Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+    <div class="admin-container">
+        <div class="header">
+            <h2>Agent Portal</h2>
+            <p>Delivery Agent</p>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+        
+        <div class="period-box">
+            <p>Current Period</p>
+            <h3>{{ current_month }}</h3>
+            <small>Today: {{ "now"|replace("now", "Dec 25") }}</small>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-box">
+                <p>Total Customers</p>
+                <h2>{{ total_customers }}</h2>
+            </div>
+            <div class="stat-box">
+                <p>Active Today</p>
+                <h2>{{ active_today }}</h2>
+            </div>
+            <div class="stat-box">
+                <p>Paused Today</p>
+                <h2>{{ paused_today }}</h2>
+            </div>
+            <div class="stat-box">
+                <p>Total Bill (Dec)</p>
+                <h2>₹{{ "%.2f"|format(total_bill) }}</h2>
+            </div>
+        </div>
+        
+        <div class="notifications">
+            <h3>Customer Requests / Notifications</h3>
+            
+            
+            {% if pause_requests %}
+                {% for req in pause_requests %}
+                <div class="notification-item">
+                    <div>
+                        <h4>{{ req.name }}</h4>
+                        <p>Pause: {{ req.pause_start.strftime('%d/%m/%Y') }} - {{ req.pause_end.strftime('%d/%m/%Y') }}</p>
+                        <p>Reason: {{ req.reason or 'Not specified' }}</p>
+                    </div>
+                    {% if req.days_ago <= 7 %}
+                    <span class="badge-new">NEW</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No recent requests</p>
+            {% endif %}
+        </div>
+        
+       <a href="{{ url_for('admin_add_customer') }}" class="btn-primary">Add Customer</a>
+       <a href="{{ url_for('admin_bills') }}" class="btn-secondary">View All Bills</a>
+       <a href="{{ url_for('admin_pause_requests') }}" class="btn-secondary">All Pause Requests </a>
+
+    </div>
+</body>
+</html>

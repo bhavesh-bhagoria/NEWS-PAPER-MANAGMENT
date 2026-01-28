@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>All Bills - Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+
+<div class="admin-container">
+    <div class="header">
+        <a href="{{ url_for('admin_dashboard') }}" class="back-btn">← Back</a>
+        <h2>All Bills</h2>
+    </div>
+
+    <div class="tab-content">
+        {% if bills %}
+            {% for bill in bills %}
+            <div class="request-card">
+                <div class="request-info">
+                    <h4>{{ bill.bill_month }}</h4>
+
+                    <p><strong>Customer:</strong> {{ bill.name }}</p>
+                    <p><strong>Mobile:</strong> {{ bill.mobile_no }}</p>
+
+                    <p><strong>Amount:</strong> ₹{{ bill.amount }}</p>
+
+                    <p><strong>Status:</strong>
+                        {% if bill.amount_status == 2 %}
+                            <span class="badge-paid">PAID</span>
+                        {% else %}
+                            <span class="badge-unpaid">UNPAID</span>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="request-actions">
+                    {% if bill.amount_status != 2 %}
+                        <a href="{{ url_for('mark_paid', bill_id=bill.bill_id) }}" class="btn-small">
+                            Mark Paid
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-requests">No bills found.</p>
+        {% endif %}
+    </div>
+</div>
+
+</body>
+</html>

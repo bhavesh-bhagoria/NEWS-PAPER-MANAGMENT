@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Newspaper Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Newspaper Management System</h1>
+        <div class="home-buttons">
+            <a href="{{ url_for('admin_login') }}">Agent Login</a>
+            <a href="{{ url_for('customer_login') }}">Customer Login</a>
+        </div>
+    </div>
+</body>
+</html>

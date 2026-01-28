@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pause Request - Customer Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/customer_dashboard.css') }}">
+</head>
+<body>
+<div class="admin-container">
+
+    <div class="header">
+        <h2>Request Pause</h2>
+        <a href="{{ url_for('customer_dashboard') }}" class="logout-btn">Back</a>
+    </div>
+
+    <div class="form-box">
+        <form method="POST" action="{{ url_for('pause_request') }}">
+            <div class="form-group">
+                <label for="start_date">Pause Start Date:</label>
+                <input type="date" id="start_date" name="start_date" required>
+            </div>
+            <div class="form-group">
+                <label for="end_date">Pause End Date:</label>
+                <input type="date" id="end_date" name="end_date" required>
+            </div>
+            <div class="form-group">
+                <label for="reason">Reason (optional):</label>
+                <textarea id="reason" name="reason" rows="3"></textarea>
+            </div>
+            <div class="form-buttons">
+                <button type="submit" class="btn-primary">Submit Request</button>
+            </div>
+        </form>
+    </div>
+
+</div>
+</body>
+</html>

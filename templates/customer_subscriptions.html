@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/customer_subscriptions.css') }}">
+
+<div class="subscriptions-container">
+    <div class="header">
+        <h1>My Subscriptions</h1>
+        <a href="{{ url_for('customer_dashboard') }}" class="btn-back">Back</a>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="subscriptions-section">
+        <h2>Active Subscriptions</h2>
+        {% if subscriptions %}
+            <table class="subscriptions-table">
+                <thead>
+                    <tr>
+                        <th>Newspaper</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Frequency</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in subscriptions %}
+                    <tr>
+                        <td>{{ sub.newspaper }}</td>
+                        <td>{{ sub.start_date }}</td>
+                        <td>{{ sub.end_date }}</td>
+                        <td>{{ sub.frequency }}</td>
+                        <td>₹{{ sub.price }}</td>
+                        <td><span class="status-badge">{{ sub.status }}</span></td>
+                        <td>
+                            <a href="{{ url_for('edit_subscription', sub_id=sub.id) }}" class="btn-edit">Edit</a>
+                            <a href="{{ url_for('delete_subscription', sub_id=sub.id) }}" class="btn-delete" onclick="return confirm('Are you sure?')">Delete</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="no-data">No active subscriptions</p>
+        {% endif %}
+    </div>
+
+    <div class="add-subscription-section">
+        <h2>Add New Subscription</h2>
+        <form method="POST" action="{{ url_for('add_subscription') }}" class="subscription-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="newspaper">Newspaper:</label>
+                    <input type="text" id="newspaper" name="newspaper" required>
+                </div>
+                <div class="form-group">
+                    <label for="frequency">Frequency:</label>
+                    <select id="frequency" name="frequency" required>
+                        <option value="Daily">Daily</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="Monthly">Monthly</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="start_date">Start Date:</label>
+                    <input type="date" id="start_date" name="start_date" required>
+                </div>
+                <div class="form-group">
+                    <label for="end_date">End Date:</label>
+                    <input type="date" id="end_date" name="end_date" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="price">Price:</label>
+                    <input type="number" id="price" name="price" step="0.01" required>
+                </div>
+            </div>
+            <button type="submit" class="btn-submit">Add Subscription</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
