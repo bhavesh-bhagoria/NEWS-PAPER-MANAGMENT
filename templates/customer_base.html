@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Panel</title>
+    <style>
+        body{
+            margin:0;
+            font-family: Arial, Helvetica, sans-serif;
+            background:#fff;
+            color:#000;
+        }
+        .navbar{
+            background:#000;
+            color:#fff;
+            padding:15px 30px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+        .nav-left a, .nav-right a{
+            color:#fff;
+            text-decoration:none;
+            margin-right:20px;
+            font-size:15px;
+        }
+        .nav-left a:hover, .nav-right a:hover{
+            text-decoration:underline;
+        }
+        .container{
+            padding:30px;
+        }
+        .brand{
+            font-weight:bold;
+            font-size:18px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="nav-left">
+        
+        <a href="{{ url_for('customer_dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('view_all_bills') }}">My Bills</a>
+        <a href="{{ url_for('customer_pause_request') }}">Pause Delivery</a>
+    </div>
+    <div class="nav-right">
+        <span>{{ session.get('customer_name') }}</span>
+        
+    </div>
+</div>
+
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
+
+</body>
+</html>

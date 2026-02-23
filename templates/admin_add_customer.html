@@ -1,59 +1,116 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Add Customer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
-</head>
-<body>
+{% extends "admin_base.html" %}
+{% block content %}
+
+<style>
+    .error-box {
+        background-color: #ffe6e6;
+        color: #cc0000;
+        padding: 12px;
+        border: 1px solid #cc0000;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .error-box ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 <div class="admin-container">
     <div class="header">
         <a href="{{ url_for('admin_dashboard') }}" class="back-btn">← Back</a>
         <h2>Add Customer</h2>
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-                <br><br>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    <!-- Error Display Section -->
+    {% if errors %}
+        <div class="error-box">
+            <ul>
+                {% for error in errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
 
     <form method="POST" class="form-box">
-        <label>Customer Name *</label><br><br>
-        <input type="text" name="name" placeholder="Enter customer name" required><br><br>
 
-        <label>Area / Locality *</label><br><br>
-        <input type="text" name="area" placeholder="Enter area/locality" required><br><br>
+    <label>Customer Name *</label><br><br>
+    <input type="text"
+           name="name"
+           placeholder="Enter customer name"
+           pattern="^(?!([A-Za-z])\1+$)(?!([A-Za-z]{2})\2+$)[A-Za-z ]{3,50}$"
+           title="Enter a valid name (letters and spaces only, no repeated patterns)"
+           required><br><br>
 
-        <label>Landmark / Building</label><br><br>
-        <input type="text" name="landmark_building" placeholder="e.g., Near Apollo Hospital"><br><br>
+    <label>Area / Locality *</label><br><br>
+    <input type="text"
+           placeholder="Enter Area/Locality"
+           name="area"
+           pattern="[A-Za-z ]{3,100}"
+           title="Area must contain only letters and spaces"
+           required><br><br>
 
-        <label>Flat / House / Office No.</label><br><br>
-        <input type="text" name="flat_house_office_no" placeholder="e.g., Flat 202"><br><br>
+    <label>Landmark / Building</label><br><br>
+    <input type="text"
+           placeholder="Enter Landmark/Building"
+           name="landmark_building"
+           pattern="[A-Za-z0-9 ,.-]{3,100}"
+           title="Only letters, numbers, space, comma, dot and dash allowed"><br><br>
 
-        <label>Mobile Number *</label><br><br>
-        <input type="tel" name="mobile" placeholder="10-digit mobile number" pattern="[0-9]{10}" required><br><br>
+    <label>Flat / House / Office No.</label><br><br>
+    <input type="text"
+           placeholder="Enter Flat/House/Office No."
+           name="flat_house_office_no"
+           pattern="[A-Za-z0-9/-]{1,20}"
+           title="Only letters, numbers, slash and dash allowed"><br><br>
 
-        <label>Password *</label><br><br>
-        <input type="password" name="password" placeholder="Set password for customer" required><br><br>
+    <label>Mobile Number *</label><br><br>
+    <input type="tel"
+           placeholder="Enter 10-digit mobile number"
+           name="mobile"
+           pattern="^(?!([6-9])\1{9}$)[6-9][0-9]{9}$"
+           maxlength="10"
+           title="Enter a valid Indian mobile number starting with 6-9"
+           required><br><br>
 
-        <label>Newspaper Type *</label><br><br>
-        <input type="text" name="newspaper" placeholder="e.g., The Times, The Hindu" required><br><br>
+    <label>Password *</label><br><br>
+    <input type="password"
+           placeholder="Enter password"
+           name="password"
+           pattern="^(?=.*[!@#$%^&*(),.?&quot;:{}|<>]).{6,}$"
+           title="Password must be at least 6 characters and include one special symbol"
+           required><br><br>
 
-        <label>Daily Price (₹) *</label><br><br>
-        <input type="number" name="rate" step="0.01" placeholder="Enter daily price" required><br><br>
+    <label>Newspaper Type *</label><br><br>
+    <select name="newspaper" required>
+        <option value="">-- Select Newspaper --</option>
+        <option value="The Hindu">The Hindu</option>
+        <option value="The Times">The Times</option>
+        <option value="Naidunia">Naidunia</option>
+        <option value="Dainik Bhaskar">Dainik Bhaskar</option>
+    </select><br><br>
 
-        <label>Subscription Start Date *</label><br><br>
-        <input type="date" name="start_date" required><br><br>
+    <label>Monthly Subscription Amount (₹) *</label><br><br>
+    <input type="number"
+           name="monthly_amount"
+           step="0.01"
+           min="50"
+           max = "1000"
+           required><br><br>
 
-        <div class="form-buttons">
-            <a href="{{ url_for('admin_add_customer') }}" class="btn-secondary">Cancel</a><br><br>
-            <button type="submit" class="btn-primary">Save Customer</button><br><br>
-        </div>
-    </form>
+    <label>Subscription Start Date *</label><br><br>
+    <input type="date"
+           name="start_date"
+           required><br><br>
+
+    <div class="form-buttons">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">Cancel</a>
+        <button type="submit" class="btn-primary">Save Customer</button>
+    </div>
+
+</form>
 </div>
-</body>
-</html>
+
+{% endblock %}

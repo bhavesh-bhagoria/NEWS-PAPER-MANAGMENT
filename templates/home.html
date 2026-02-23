@@ -7,9 +7,22 @@
 <body>
     <div class="container">
         <h1>Newspaper Management System</h1>
+
         <div class="home-buttons">
-            <a href="{{ url_for('admin_login') }}">Agent Login</a>
-            <a href="{{ url_for('customer_login') }}">Customer Login</a>
+
+            <!-- Agent Section -->
+            <div class="section">
+                <h3>Agent Panel</h3>
+                <a href="{{ url_for('admin_login') }}" class="btn">Agent Login</a><br>
+                <a href="{{ url_for('admin_register') }}" class="btn register-btn">Agent Register</a>
+            </div>
+
+            <!-- Customer Section -->
+            <div class="section">
+                <h3>Customer Panel</h3>
+                <a href="{{ url_for('customer_login') }}" class="btn">Customer Login</a>
+            </div>
+
         </div>
     </div>
 </body>

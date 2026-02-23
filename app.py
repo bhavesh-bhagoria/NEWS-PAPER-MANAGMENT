@@ -1,91 +1,377 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from db import get_db_connection
-from datetime import datetime
+from datetime import datetime, date
+from datetime import datetime, timedelta
 import calendar
-
+import re
 app = Flask(__name__)
-app.secret_key = "change_this_to_random_secret_key_12345"
+app.secret_key = "qwerty"
 
 
-# ---------------- BILL ENGINE ----------------
-
-
-# ---------------- Home ----------------
 @app.route("/")
 def home():
     return render_template("home.html")
 
 
-# ---------------- Admin Login ----------------
-@app.route("/admin_login", methods=["GET", "POST"])
-def admin_login():
+@app.route("/admin_register", methods=["GET", "POST"])
+def admin_register():
+
+    errors = []
+
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+
+        username = request.form.get("username", "").strip()
+        mobile_no = request.form.get("mobile_no", "").strip()
+        password = request.form.get("password", "").strip()
+
+        if not username:
+            errors.append("Username is required")
+        elif not re.match(r"^(?!([A-Za-z])\1+$)(?!([A-Za-z]{2})\2+$)[A-Za-z ]{3,50}$", username):
+            errors.append("Enter a valid name (no repeated character patterns)")
+        if not mobile_no:
+            errors.append("Mobile number is required")
+        elif not re.match(r"^(?!([6-9])\1{9}$)[6-9]\d{9}$", mobile_no):
+            errors.append("Enter a valid Indian mobile number")
+
+        if not password:
+            errors.append("Password is required")
+        elif not re.match(r"^(?=.*[!@#$%^&*(),.?\":{}|<>]).{4,}$", password):
+            errors.append("Password must be at least 4 characters and include one special symbol")
 
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM agent_credentials WHERE username=%s AND password=%s",
-                       (username, password))
-        admin = cursor.fetchone()
-        cursor.close()
+        cursor = conn.cursor()
+
+        if not errors:
+            
+            cursor.execute(
+                "SELECT 1 FROM agent_credentials WHERE mobile_no = %s",
+                (mobile_no,)
+            )
+            if cursor.fetchone():
+                errors.append("Mobile number already registered")
+
+            cursor.execute(
+                "SELECT 1 FROM agent_credentials WHERE username = %s",
+                (username,)
+            )
+            if cursor.fetchone():
+                errors.append("Username already taken")
+
+        if errors:
+            conn.close()
+            return render_template(
+                "agent_register.html",
+                errors=errors,
+                username=username,
+                mobile_no=mobile_no
+            )
+        cursor.execute("""
+            INSERT INTO agent_credentials (username, mobile_no, password)
+            VALUES (%s, %s, %s)
+        """, (username, mobile_no, password))
+
+        conn.commit()
         conn.close()
 
-        if admin:
-            session["admin_id"] = admin["agent_id"]
-            session["admin_name"] = admin["username"]
-            return redirect(url_for("admin_dashboard"))
+        return redirect(url_for("admin_login"))
 
-        flash("Invalid credentials", "error")
+    return render_template("agent_register.html", errors=[])
 
-    return render_template("admin_login.html")
+
+@app.route("/admin_login", methods=["GET", "POST"])
+def admin_login():
+
+    errors = []
+
+    if request.method == "POST":
+
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        if not username:
+            errors.append("Username is required")
+
+        if not password:
+            errors.append("Password is required")
+
+        if not errors:
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+
+            cursor.execute(
+                "SELECT * FROM agent_credentials WHERE username=%s AND password=%s",
+                (username, password)
+            )
+
+            admin = cursor.fetchone()
+            cursor.close()
+            conn.close()
+
+            if not admin:
+                errors.append("Invalid username or password")
+
+            else:
+                session["admin_id"] = admin["agent_id"]
+                session["admin_name"] = admin["username"]
+                return redirect(url_for("admin_dashboard"))
+
+        return render_template(
+            "admin_login.html",
+            errors=errors,
+            username=username
+        )
+
+    return render_template("admin_login.html", errors=[])
 
 
 def generate_monthly_bills():
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    main_cursor = conn.cursor(dictionary=True)
 
-    today = datetime.today()
-    bill_month = today.strftime("%B %Y")
-    days_in_month = calendar.monthrange(today.year, today.month)[1]
+    today = datetime.today().date()
 
-    # Get all customers with rate
-    cursor.execute("""
-        SELECT cd.customer_id, ns.rate_per_day
-        FROM customer_details cd
-        JOIN newspaper_details ns ON cd.customer_id = ns.customer_id
+    main_cursor.execute("""
+        SELECT customer_details.customer_id,
+               customer_details.start_date,
+               newspaper_details.rate_per_day,
+               newspaper_details.subscription_id
+        FROM customer_details
+        JOIN newspaper_details
+        ON customer_details.customer_id = newspaper_details.customer_id
     """)
-    customers = cursor.fetchall()
+    customers = main_cursor.fetchall()
 
-    UNPAID_STATUS = 1  # from payment_status table
+    UNPAID_STATUS = 2
 
-    for customer in customers:
-        customer_id = customer["customer_id"]
-        rate = customer["rate_per_day"]
+    for c in customers:
+        customer_id = c["customer_id"]
+        start = c["start_date"]
+        rate = c["rate_per_day"]
+        subscription_id = c["subscription_id"]
 
-        days_active = days_in_month
-        amount = days_active * rate
+        month_cursor = start.replace(day=1)
 
-        # Check if bill already exists
-        cursor.execute("""
-            SELECT bill_id FROM bills
-            WHERE customer_id=%s AND bill_month=%s
-        """, (customer_id, bill_month))
+        while month_cursor <= today:
+            year = month_cursor.year
+            month = month_cursor.month
+            month_name = calendar.month_name[month]
+            bill_month = month_name + " " + str(year)
 
-        if not cursor.fetchone():
-            cursor.execute("""
-                INSERT INTO bills
-                (customer_id, bill_month, days_active, amount, amount_status)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (customer_id, bill_month, days_active, amount, UNPAID_STATUS))
+            days_in_month = calendar.monthrange(year, month)[1]
+            month_start = month_cursor
+            last_day_of_month = datetime(year, month, days_in_month).date()
+
+            month_end = min(last_day_of_month, today)
+            total_days = (month_end - month_start).days + 1
+
+            pause_cursor = conn.cursor(dictionary=True)
+            pause_cursor.execute("""
+                SELECT pause_start, pause_end
+                FROM pause_details
+                WHERE subscription_id=%s
+                AND pause_start <= %s
+                AND pause_end >= %s
+            """, (subscription_id, month_end, month_start))
+
+            pauses = pause_cursor.fetchall()
+            pause_cursor.close()
+
+            paused_days = 0
+            for p in pauses:
+                ps = max(p["pause_start"], month_start)
+                pe = min(p["pause_end"], month_end)
+                if ps <= pe:
+                    paused_days += (pe - ps).days + 1
+
+            active_days = max(0, total_days - paused_days)
+            amount = active_days * rate
+
+            bill_cursor = conn.cursor()
+            bill_cursor.execute("""
+                SELECT bill_id FROM bills2
+                WHERE customer_id=%s AND bill_month=%s
+            """, (customer_id, bill_month))
+
+            exists = bill_cursor.fetchone()
+
+            if not exists:
+                bill_cursor.execute("""
+                    INSERT INTO bills
+                    (customer_id, bill_month, days_active, amount, amount_status)
+                    VALUES (%s,%s,%s,%s,%s)
+                """, (customer_id, bill_month, active_days, amount, UNPAID_STATUS))
+
+            bill_cursor.close()
+
+            if month == 12:
+                month_cursor = datetime(year + 1, 1, 1).date()
+            else:
+                month_cursor = datetime(year, month + 1, 1).date()
 
     conn.commit()
-    cursor.close()
+    main_cursor.close()
     conn.close()
 
+@app.route("/admin_add_customer", methods=["GET", "POST"])
+def admin_add_customer():
+
+    if "admin_id" not in session:
+        return redirect(url_for("admin_login"))
+
+    if request.method == "POST":
+
+        errors = []
+
+        mobile = request.form.get("mobile", "").strip()
+        name = request.form.get("name", "").strip()
+        password = request.form.get("password", "").strip()
+        area = request.form.get("area", "").strip()
+        landmark = request.form.get("landmark_building", "").strip()
+        flat_no = request.form.get("flat_house_office_no", "").strip()
+        start_date = request.form.get("start_date", "").strip()
+        newspaper = request.form.get("newspaper", "").strip()
+        monthly_amount = request.form.get("monthly_amount", "").strip()
+
+        rate = None
 
 
-# ---------------- Admin Dashboard ----------------
+        if not name:
+            errors.append("Name is required")
+        elif not re.match(r"^(?!([A-Za-z])\1+$)(?!([A-Za-z]{2})\2+$)[A-Za-z ]{3,50}$", name):
+            errors.append("Enter a valid name")
+
+        if not mobile:
+            errors.append("Mobile number is required")
+        elif not re.match(r"^(?!([6-9])\1{9}$)[6-9]\d{9}$", mobile):
+            errors.append("Enter a valid Indian mobile number")
+
+        if not password:
+            errors.append("Password is required")
+        elif not re.match(r"^(?=.*[!@#$%^&*(),.?\":{}|<>]).{6,}$", password):
+            errors.append("Password must be at least 6 characters and include one special symbol")
+
+        if not area:
+            errors.append("Area is required")
+        elif not re.match(r"^(?!([A-Za-z])\1+$)[A-Za-z ]{3,100}$", area):
+            errors.append("Enter a valid area name")
+
+        if not landmark:
+            errors.append("Landmark / Building is required")
+        elif not re.match(r"^(?!([A-Za-z0-9])\1+$)[A-Za-z0-9 ,.-]{3,100}$", landmark):
+            errors.append("Enter a valid landmark")
+
+        if not flat_no:
+            errors.append("Flat / House / Office No. is required")
+        elif not re.match(r"^(?!([A-Za-z0-9])\1+$)[A-Za-z0-9/-]{1,20}$", flat_no):
+            errors.append("Enter a valid flat/house number")
+
+        if not start_date:
+            errors.append("Start date is required")
+        else:
+            try:
+                datetime.strptime(start_date, "%Y-%m-%d")
+            except ValueError:
+                errors.append("Invalid start date format (YYYY-MM-DD required)")
+
+        if not newspaper:
+            errors.append("Newspaper is required")
+
+        if not monthly_amount:
+            errors.append("Monthly subscription amount is required")
+        else:
+            try:
+                monthly_amount = float(monthly_amount)
+                if monthly_amount <= 0:
+                    errors.append("Monthly amount must be greater than 0")
+                else:
+                    rate = round(monthly_amount / 30.0, 2)
+            except ValueError:
+                errors.append("Monthly amount must be a valid number")
+
+
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        cursor.execute(
+            "SELECT customer_id FROM customer_details WHERE mobile_no = %s",
+            (mobile,)
+        )
+        existing = cursor.fetchone()
+
+        if existing:
+            errors.append("Mobile number already exists")
+
+        if errors:
+            cursor.close()
+            connection.close()
+
+            return render_template(
+            "admin_add_customer.html",
+            errors=errors,
+            name=name,
+            mobile=mobile,
+            area=area,
+            landmark_building=landmark,
+            flat_house_office_no=flat_no,
+            monthly_amount=monthly_amount,
+            start_date=start_date,
+            newspaper=newspaper
+    )
+
+
+        try:
+            cursor.execute("""
+                INSERT INTO customer_details
+                (agent_id, name, password, mobile_no, area_locality,
+                 landmark_building, flat_house_office_no, start_date)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                session["admin_id"],
+                name,
+                password,
+                mobile,
+                area,
+                landmark,
+                flat_no,
+                start_date
+            ))
+
+            new_customer_id = cursor.lastrowid
+
+            cursor.execute("""
+                INSERT INTO newspaper_details
+                (customer_id, newspaper_name, language,
+                 delivery_frequency, rate_per_day)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (
+                new_customer_id,
+                newspaper,
+                "English",
+                "Daily",
+                rate
+            ))
+
+            connection.commit()
+
+        except Exception as e:
+            connection.rollback()
+            print("DATABASE ERROR:", e)
+            flash("Database error occurred while adding customer", "danger")
+            cursor.close()
+            connection.close()
+            return redirect(url_for("admin_add_customer"))
+
+        cursor.close()
+        connection.close()
+
+        flash("Customer added successfully", "success")
+        return redirect(url_for("admin_dashboard"))
+
+    return render_template("admin_add_customer.html")
+
+
+
+
 @app.route("/admin_dashboard")
 def admin_dashboard():
     if "admin_id" not in session:
@@ -96,141 +382,229 @@ def admin_dashboard():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    current_month = datetime.now().strftime("%B %Y")
+    today = datetime.today()
+    today = today.date()
 
-    cursor.execute("SELECT COUNT(*) AS total FROM customer_details WHERE agent_id=%s",
-                   (session["admin_id"],))
-    total_customers = cursor.fetchone()["total"]
+    current_month_name = calendar.month_name[today.month]
+    current_year = today.year
+    current_month = current_month_name + " " + str(current_year)
+    first_day_of_current_month = today.replace(day=1)
+    last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
+    previous_month_name = calendar.month_name[last_day_of_previous_month.month]
+    previous_year = last_day_of_previous_month.year
+    previous_month = previous_month_name + " " + str(previous_year)
 
-    cursor.execute("""
-        SELECT SUM(b.amount) AS total
-        FROM bills b
-        JOIN customer_details c ON b.customer_id=c.customer_id
-        WHERE c.agent_id=%s AND b.bill_month=%s
-    """, (session["admin_id"], current_month))
-    total_bill = cursor.fetchone()["total"] or 0
+    cursor.execute(
+        "SELECT COUNT(*) AS total_customers FROM customer_details WHERE agent_id=%s",
+        (session["admin_id"],)
+    )
+    total_customers_result = cursor.fetchone()
+    total_customers = total_customers_result["total_customers"]
+
+    cursor.execute(
+        "SELECT SUM(bills.amount) AS total_bill "
+        "FROM bills "
+        "JOIN customer_details ON bills.customer_id = customer_details.customer_id "
+        "WHERE customer_details.agent_id=%s AND bills.bill_month=%s",
+        (session["admin_id"], current_month)
+    )
+    total_bill_result = cursor.fetchone()
+    if total_bill_result["total_bill"] is None:
+        total_bill = 0
+    else:
+        total_bill = total_bill_result["total_bill"]
+
+    cursor.execute(
+        "SELECT SUM(bills.amount) AS collected_last_month "
+        "FROM bills "
+        "JOIN customer_details ON bills.customer_id = customer_details.customer_id "
+        "WHERE customer_details.agent_id=%s AND bills.bill_month=%s AND bills.amount_status=1",
+        (session["admin_id"], previous_month)
+    )
+    collected_last_month_result = cursor.fetchone()
+    if collected_last_month_result["collected_last_month"] is None:
+        collected_last_month = 0
+    else:
+        collected_last_month = collected_last_month_result["collected_last_month"]
+
+    cursor.execute(
+        "SELECT DISTINCT newspaper_details.customer_id "
+        "FROM newspaper_details "
+        "JOIN customer_details ON newspaper_details.customer_id = customer_details.customer_id "
+        "WHERE customer_details.agent_id=%s",
+        (session["admin_id"],)
+    )
+    subscriptions_result = cursor.fetchall()
+
+    paused_today_list = []
+
+    for subscription_row in subscriptions_result:
+        customer_id = subscription_row["customer_id"]
+
+        cursor.execute(
+            "SELECT pause_details.pause_start, pause_details.pause_end "
+            "FROM pause_details "
+            "JOIN newspaper_details ON pause_details.subscription_id = newspaper_details.subscription_id "
+            "WHERE newspaper_details.customer_id=%s",
+            (customer_id,)
+        )
+        pause_dates_result = cursor.fetchall()
+
+        for pause_row in pause_dates_result:
+            pause_start = pause_row["pause_start"]
+            pause_end = pause_row["pause_end"]
+
+            if pause_start <= today and today <= pause_end:
+                paused_today_list.append(customer_id)
+                break
+
+    active_today = total_customers - len(paused_today_list)
+
+    cursor.execute(
+        "SELECT COUNT(DISTINCT customer_details.customer_id) AS paused_today "
+        "FROM pause_details "
+        "JOIN newspaper_details ON pause_details.subscription_id = newspaper_details.subscription_id "
+        "JOIN customer_details ON newspaper_details.customer_id = customer_details.customer_id "
+        "WHERE customer_details.agent_id=%s "
+        "AND %s BETWEEN pause_details.pause_start AND pause_details.pause_end",
+        (session["admin_id"], today)
+    )
+    paused_today_result = cursor.fetchone()
+    paused_today = paused_today_result["paused_today"]
 
     cursor.close()
     conn.close()
 
-    return render_template("admin_dashboard.html",
-                           name=session["admin_name"],
-                           total_customers=total_customers,
-                           total_bill=total_bill,
-                           current_month=current_month)
-
-
-# ---------------- Add Customer ----------------
-@app.route("/admin_add_customer", methods=["GET", "POST"])
-def admin_add_customer():
-    if "admin_id" not in session:
-        return redirect(url_for("admin_login"))
-
-    if request.method == "POST":
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            INSERT INTO customer_details
-            (agent_id, name, password, mobile_no, area_locality,
-             landmark_building, flat_house_office_no, start_date)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            session["admin_id"],
-            request.form["name"],
-            request.form["password"],
-            request.form["mobile"],
-            request.form["area"],
-            request.form.get("landmark_building", ""),
-            request.form.get("flat_house_office_no", ""),
-            request.form["start_date"],
-        ))
-
-        customer_id = cursor.lastrowid
-
-        cursor.execute("""
-            INSERT INTO newspaper_details
-            (customer_id, newspaper_name, language, delivery_frequency, rate_per_day)
-            VALUES (%s,%s,'English','Daily',%s)
-        """, (customer_id, request.form["newspaper"], request.form["rate"]))
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        flash("Customer added successfully", "success")
-        return redirect(url_for("admin_dashboard"))
-
-    return render_template("admin_add_customer.html")
-
-
+    return render_template(
+        "admin_dashboard.html",
+        name=session["admin_name"],
+        total_customers=total_customers,
+        active_today=active_today,
+        paused_today=paused_today,
+        total_bill=total_bill,
+        collected_last_month=collected_last_month,
+        current_month_name=current_month_name,
+        previous_month_name=previous_month_name
+    )
+from datetime import datetime
+ 
 
 @app.route("/customer_login", methods=["GET", "POST"])
 def customer_login():
+
+    errors = []
+
     if request.method == "POST":
-        mobile_no = request.form.get("mobile_no")
-        password = request.form.get("password")
 
-        if not mobile_no or not password:
-            flash("Mobile number and password are required", "error")
-            return render_template("customer_login.html")
+        mobile_no = request.form.get("mobile_no", "").strip()
+        password = request.form.get("password", "").strip()
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        if not mobile_no:
+            errors.append("Mobile number is required")
+        elif not mobile_no.isdigit():
+            errors.append("Mobile number must contain only digits")
+        elif len(mobile_no) != 10:
+            errors.append("Mobile number must be 10 digits")
 
-        cursor.execute("""
-            SELECT customer_id, name
-            FROM customer_details
-            WHERE mobile_no=%s AND password=%s
-        """, (mobile_no, password))
+        if not password:
+            errors.append("Password is required")
 
-        customer = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        if not errors:
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
 
-        if customer:
-            session["customer_id"] = customer["customer_id"]
-            session["customer_name"] = customer["name"]
-            return redirect(url_for("customer_dashboard"))
+            cursor.execute("""
+                SELECT customer_id, name
+                FROM customer_details
+                WHERE mobile_no=%s AND password=%s
+            """, (mobile_no, password))
 
-        flash("Invalid mobile number or password", "error")
+            customer = cursor.fetchone()
+            cursor.close()
+            conn.close()
 
-    return render_template("customer_login.html")
+            if not customer:
+                errors.append("Invalid mobile number or password")
+            else:
+                session["customer_id"] = customer["customer_id"]
+                session["customer_name"] = customer["name"]
+                return redirect(url_for("customer_dashboard"))
+
+        return render_template(
+            "customer_login.html",
+            errors=errors,
+            mobile_no=mobile_no
+        )
+
+    return render_template("customer_login.html", errors=[])
 
 
 
 
 
-# ---------------- Customer Dashboard ----------------
 @app.route("/customer_dashboard")
 def customer_dashboard():
     if "customer_id" not in session:
-        return render_template("customer_login.html")
-
+        return redirect(url_for("customer_login"))
     generate_monthly_bills()
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    current_month = datetime.now().strftime("%B %Y")
+    today = datetime.now().date()
+    current_month = today.strftime("%B %Y")
 
     cursor.execute("""
-        SELECT amount FROM bills
+        SELECT amount, days_active
+        FROM bills
         WHERE customer_id=%s AND bill_month=%s
     """, (session["customer_id"], current_month))
+    current = cursor.fetchone()
 
-    bill = cursor.fetchone()
-    amount = bill["amount"] if bill else 0
+
+    first_day_current = today.replace(day=1)
+    prev_month_date = first_day_current - timedelta(days=1)
+    previous_month = prev_month_date.strftime("%B %Y")
+
+    cursor.execute("""
+        SELECT bill_month, amount, amount_status
+        FROM bills
+        WHERE customer_id=%s AND bill_month=%s
+        LIMIT 1
+    """, (session["customer_id"], previous_month))
+    last_bill = cursor.fetchone()
+
+
+    cursor.execute("""
+        SELECT SUM(amount) AS paid
+        FROM bills
+        WHERE customer_id=%s AND amount_status=1
+    """, (session["customer_id"],))
+    paid = cursor.fetchone()["paid"] or 0
+
+
+    cursor.execute("""
+        SELECT newspaper_name, rate_per_day
+        FROM newspaper_details
+        WHERE customer_id=%s
+    """, (session["customer_id"],))
+    subscription = cursor.fetchone()
 
     cursor.close()
     conn.close()
 
-    return render_template("customer_dashboard.html",
-                           current_bill=amount,
-                           name=session["customer_name"])
+    return render_template(
+        "customer_dashboard.html",
+        name=session["customer_name"],
+        subscription=subscription,
+        current_month_bill=current["amount"] if current else 0,
+        total_paid=paid,
+        last_month_bill=last_bill,
+        last_month_name=last_bill["bill_month"] if last_bill else previous_month
+    )
 
 
-# ---------------- View All Bills (Customer) ----------------
+
 @app.route("/view_all_bills")
 def view_all_bills():
     if "customer_id" not in session:
@@ -252,8 +626,6 @@ def view_all_bills():
 
     return render_template("view_all_bills.html", bills=bills)
 
-
-# ---------------- Admin Bills ----------------
 @app.route("/admin/bills")
 def admin_bills():
     if "admin_id" not in session:
@@ -261,95 +633,227 @@ def admin_bills():
 
     generate_monthly_bills()
 
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    page = request.args.get("page", 1, type=int)
+
+    connection = get_db_connection()
+    database_cursor = connection.cursor(dictionary=True)
+
+    database_cursor.execute("""
+        SELECT 
+            bills.bill_id,
+            bills.bill_month,
+            bills.amount,
+            bills.amount_status,
+            bills.customer_id,
+            customer_details.name,
+            customer_details.mobile_no
+        FROM bills
+        JOIN customer_details
+            ON bills.customer_id = customer_details.customer_id
+        WHERE customer_details.agent_id = %s
+    """, (session["admin_id"],))
+
+    all_bills_result = database_cursor.fetchall()
+
+    database_cursor.close()
+    connection.close()
+
+    month_list = []
+    for bill in all_bills_result:
+        if bill["bill_month"] not in month_list:
+            month_list.append(bill["bill_month"])
+
+    month_tuples = []
+    for month_name_year in month_list:
+        parts = month_name_year.split(" ")
+        if len(parts) == 2:
+            month_name = parts[0]
+            year_number = int(parts[1])
+            month_number = 1
+            month_names = [
+                "", "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ]
+            for i in range(1, 13):
+                if month_names[i] == month_name:
+                    month_number = i
+                    break
+            month_tuples.append((year_number, month_number, month_name_year))
+        else:
+            month_tuples.append((0, 0, month_name_year)) 
+
+
+    month_tuples_sorted = []
+    while len(month_tuples) > 0:
+        max_index = 0
+        for i in range(1, len(month_tuples)):
+            if month_tuples[i][0] > month_tuples[max_index][0]:
+                max_index = i
+            elif month_tuples[i][0] == month_tuples[max_index][0] and month_tuples[i][1] > month_tuples[max_index][1]:
+                max_index = i
+        month_tuples_sorted.append(month_tuples[max_index])
+        month_tuples.pop(max_index)
+
+
+    total_pages = len(month_tuples_sorted)
+
+    if page < 1:
+        page = 1
+    if page > total_pages and total_pages > 0:
+        page = total_pages
+
+    bills_grouped_dirty = {}
+
+    if total_pages > 0:
+        selected_month_tuple = month_tuples_sorted[page - 1]
+        month_name_year = selected_month_tuple[2]
+
+        bills_grouped_dirty[month_name_year] = []
+
+        for bill in all_bills_result:
+            if bill["bill_month"] == month_name_year:
+                bills_grouped_dirty[month_name_year].append(bill)
+
+    return render_template(
+        "admin_bills.html",
+        bills_grouped=bills_grouped_dirty,
+        page=page,
+        total_pages=total_pages
+    )
+
+from fpdf import FPDF
+from flask import make_response
+
+@app.route("/admin/bills/download/<int:customer_id>")
+def download_customer_pdf(customer_id):
+
+    if "admin_id" not in session:
+        return redirect(url_for("admin_login"))
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
 
     cursor.execute("""
         SELECT 
-            b.bill_id,
-            b.bill_month,
-            b.amount,
-            b.amount_status,
-            c.name,
-            c.mobile_no
-        FROM bills b
-        JOIN customer_details c 
-            ON b.customer_id = c.customer_id
-        WHERE c.agent_id = %s
-        ORDER BY b.bill_id DESC
-    """, (session["admin_id"],))
+            bills.bill_id,
+            bills.bill_month,
+            bills.amount,
+            bills.amount_status,
+            customer_details.name,
+            customer_details.mobile_no
+        FROM bills
+        JOIN customer_details
+            ON bills.customer_id = customer_details.customer_id
+        WHERE bills.customer_id = %s
+        AND customer_details.agent_id = %s
+    """, (customer_id, session["admin_id"]))
 
     bills = cursor.fetchall()
 
     cursor.close()
-    conn.close()
+    connection.close()
 
-    return render_template("admin_bills.html", bills=bills)
+    if not bills:
+        return "No bills found"
 
+    pdf = FPDF()
+    pdf.add_page()
 
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Customer Bills Report", ln=True, align="C")
 
-# ---------------- Toggle Paid/Unpaid ----------------
-@app.route("/admin/toggle_bill/<int:bill_id>")
-def toggle_bill(bill_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    pdf.ln(10)
 
-    cursor.execute("""
-        UPDATE bills
-        SET amount_status = CASE WHEN amount_status=0 THEN 1 ELSE 0 END
-        WHERE bill_id=%s
-    """, (bill_id,))
+    pdf.set_font("Arial", size=12)
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+    pdf.cell(0, 8, f"Name: {bills[0]['name']}", ln=True)
+    pdf.cell(0, 8, f"Mobile: {bills[0]['mobile_no']}", ln=True)
 
-    return redirect(url_for("admin_bills"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(25, 10, "Bill ID", 1)
+    pdf.cell(40, 10, "Month", 1)
+    pdf.cell(30, 10, "Amount", 1)
+    pdf.cell(35, 10, "Status", 1)
+    pdf.ln()
+
+    pdf.set_font("Arial", size=10)
+
+    for bill in bills:
+        pdf.cell(25, 10, str(bill["bill_id"]), 1)
+        pdf.cell(40, 10, bill["bill_month"], 1)
+        pdf.cell(30, 10, str(bill["amount"]), 1)
+        status_text = "Paid" if bill["amount_status"] == 1 else "Unpaid"
+        pdf.cell(35, 10, status_text, 1)
+        pdf.ln()
+
+    response = make_response(pdf.output(dest="S").encode("latin-1"))
+    response.headers.set("Content-Type", "application/pdf")
+    response.headers.set("Content-Disposition","attachment",
+        filename=f"{bills[0]['name']}_bills.pdf",
+    )
+
+    return response
+
 
 @app.route("/admin_pause_requests")
 def admin_pause_requests():
     if "admin_id" not in session:
         return redirect(url_for("admin_login"))
 
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    connection = get_db_connection()
+    database_cursor = connection.cursor(dictionary=True)
 
-    cursor.execute("""
-        SELECT pd.pause_id, pd.subscription_id, pd.pause_start, pd.pause_end, pd.seen,
-               pr.reason, c.name AS customer_name
-        FROM pause_details pd
-        LEFT JOIN pause_reason pr ON pd.pause_id = pr.pause_id
-        JOIN newspaper_details ns ON pd.subscription_id = ns.subscription_id
-        JOIN customer_details c ON ns.customer_id = c.customer_id
-        WHERE c.agent_id = %s
-        ORDER BY pd.pause_start DESC
-    """, (session["admin_id"],))
+    sql_query = """
+        SELECT pause_details.pause_id, pause_details.subscription_id,
+               pause_details.pause_start, pause_details.pause_end,
+               pause_details.seen, pause_reason.reason,
+               customer_details.name AS customer_name
+        FROM pause_details
+        LEFT JOIN pause_reason ON pause_details.pause_id = pause_reason.pause_id
+        JOIN newspaper_details ON pause_details.subscription_id = newspaper_details.subscription_id
+        JOIN customer_details ON newspaper_details.customer_id = customer_details.customer_id
+        WHERE customer_details.agent_id = %s
+        ORDER BY pause_details.pause_start DESC
+    """
+    database_cursor.execute(sql_query, (session["admin_id"],))
 
-    requests = cursor.fetchall()
-    new_requests = sum(1 for r in requests if r['seen'] == 0)
+    all_pause_requests = database_cursor.fetchall()
 
-    cursor.close()
-    conn.close()
+    new_requests_count = 0
+    for single_request in all_pause_requests:
+        if single_request["seen"] == 0:
+            new_requests_count = new_requests_count + 1
+
+    database_cursor.close()
+    connection.close()
 
     return render_template(
         "admin_pause_requests.html",
-        requests=requests,
-        new_requests=new_requests
+        requests=all_pause_requests,
+        new_requests=new_requests_count
     )
-# ---------------- Mark Bill as Paid ----------------
-@app.route("/mark_paid/<int:bill_id>")
-def mark_paid(bill_id):
+
+    
+@app.route("/admin/toggle_bill/<bill_id>")
+def toggle_bill(bill_id):
     if "admin_id" not in session:
         return redirect(url_for("admin_login"))
+
+    bill_id = int(bill_id)
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-        UPDATE bills
-        SET payment_status = 'Paid'
-        WHERE bill_id = %s
-    """, (bill_id,))
+                  UPDATE bills
+                SET amount_status = CASE 
+                WHEN amount_status = 2 THEN 1 
+                ELSE 2 
+                END
+                WHERE bill_id=%s
+            """, (bill_id,))
 
     conn.commit()
     cursor.close()
@@ -357,53 +861,156 @@ def mark_paid(bill_id):
 
     return redirect(url_for("admin_bills"))
 
-@app.route("/mark_unpaid/<int:bill_id>")
-def mark_unpaid(bill_id):
-    if "admin_id" not in session:
-        return redirect(url_for("admin_login"))
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        UPDATE bills
-        SET payment_status = 'Unpaid'
-        WHERE bill_id = %s
-    """, (bill_id,))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    return redirect(url_for("admin_bills"))
-@app.route("/mark_seen/<int:pause_id>")
+@app.route("/mark_seen/<pause_id>")
 def mark_seen(pause_id):
     if "admin_id" not in session:
         return redirect(url_for("admin_login"))
+    pause_id = int(pause_id)
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        UPDATE pause_requests
+    connection = get_db_connection()
+    database_cursor = connection.cursor()
+    database_cursor.execute("""
+        UPDATE pause_details
         SET seen = 1
         WHERE pause_id = %s
     """, (pause_id,))
+    connection.commit()
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+    database_cursor.close()
+    connection.close()
 
     return redirect(url_for("admin_pause_requests"))
 
 
-
-# ---------------- Logout ----------------
 @app.route("/logout")
 def logout():
-    session.clear()
+    session.pop("admin_id", None)
+    session.pop("customer_id", None)
     return redirect(url_for("home"))
+
+
+
+@app.route("/customer_pause_request", methods=["GET", "POST"])
+def customer_pause_request():
+    if "customer_id" not in session:
+        return redirect(url_for("customer_login"))
+
+    connection = get_db_connection()
+    database_cursor = connection.cursor(dictionary=True)
+
+    today = date.today()
+
+    if request.method == "POST":
+        pause_start_str = request.form.get("pause_start")
+        pause_end_str = request.form.get("pause_end")
+        reason = request.form.get("reason", "")
+
+        pause_start_parts = pause_start_str.split("-")
+        pause_start_date = date(
+            int(pause_start_parts[0]),
+            int(pause_start_parts[1]),
+            int(pause_start_parts[2])
+        )
+
+        pause_end_parts = pause_end_str.split("-")
+        pause_end_date = date(
+            int(pause_end_parts[0]),
+            int(pause_end_parts[1]),
+            int(pause_end_parts[2])
+        )
+
+        if pause_start_date < today:
+            flash("Pause start date cannot be in the past.", "error")
+            database_cursor.close()
+            connection.close()
+            return redirect(url_for("customer_pause_request"))
+
+        if pause_end_date < pause_start_date:
+            flash("Pause end date cannot be before start date.", "error")
+            database_cursor.close()
+            connection.close()
+            return redirect(url_for("customer_pause_request"))
+
+        database_cursor.execute(
+            "SELECT subscription_id FROM newspaper_details WHERE customer_id = %s",
+            (session["customer_id"],))
+        subscription_result = database_cursor.fetchone()
+
+        if not subscription_result:
+            flash("No active subscription found.", "error")
+            database_cursor.close()
+            connection.close()
+            return redirect(url_for("customer_dashboard"))
+
+        subscription_id = subscription_result["subscription_id"]
+
+        database_cursor.execute(
+            "INSERT INTO pause_details (subscription_id, pause_start, pause_end, seen) VALUES (%s, %s, %s, 0)",
+            (subscription_id, pause_start_date, pause_end_date))
+
+        pause_id = database_cursor.lastrowid
+
+        if reason != "":
+            database_cursor.execute(
+                "INSERT INTO pause_reason (pause_id, reason) VALUES (%s, %s)",
+                (pause_id, reason))
+
+        connection.commit()
+        database_cursor.close()
+        connection.close()
+
+        flash("Pause request submitted successfully", "success")
+        return redirect(url_for("customer_dashboard"))
+    
+    database_cursor.execute(
+        "SELECT subscription_id, newspaper_name FROM newspaper_details WHERE customer_id = %s",
+        (session["customer_id"],))
+    subscription_result = database_cursor.fetchone()
+
+    database_cursor.close()
+    connection.close()
+    return render_template(
+        "customer_pause_request.html",
+        subscription=subscription_result,
+        date=date)
+
+
+@app.route("/admin/customers")
+def admin_customers():
+    if "admin_id" not in session:
+        return redirect(url_for("admin_login"))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""SELECT 
+            customer_id,
+            name,
+            mobile_no,
+            area_locality,
+            landmark_building,
+            flat_house_office_no
+        FROM customer_details
+        WHERE agent_id = %s
+        ORDER BY name ASC
+    """, (session["admin_id"],))
+
+    customers = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template("admin_customers.html", customers=customers)
+
 
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+
+
+
+
+
+
+

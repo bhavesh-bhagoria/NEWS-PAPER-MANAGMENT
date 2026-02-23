@@ -1,3 +1,5 @@
+{% extends "admin_base.html" %}
+{% block content %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,15 +10,14 @@
 <body>
     <div class="admin-container">
         <div class="header">
-            <h2>Agent Portal</h2>
-            <p>Delivery Agent</p>
+            
+            <h2>Vinayak Newspaper Agency</h2>
             <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
         </div>
         
         <div class="period-box">
             <p>Current Period</p>
-            <h3>{{ current_month }}</h3>
-            <small>Today: {{ "now"|replace("now", "Dec 25") }}</small>
+            <h3>{{ current_month_name }}</h3>
         </div>
         
         <div class="stats-grid">
@@ -32,9 +33,10 @@
                 <p>Paused Today</p>
                 <h2>{{ paused_today }}</h2>
             </div>
+           
             <div class="stat-box">
-                <p>Total Bill (Dec)</p>
-                <h2>₹{{ "%.2f"|format(total_bill) }}</h2>
+                <p>Collected {{previous_month_name}}</p>
+                <h2>₹{{ "%.2f"|format(collected_last_month) }}</h2>
             </div>
         </div>
         
@@ -63,7 +65,11 @@
        <a href="{{ url_for('admin_add_customer') }}" class="btn-primary">Add Customer</a>
        <a href="{{ url_for('admin_bills') }}" class="btn-secondary">View All Bills</a>
        <a href="{{ url_for('admin_pause_requests') }}" class="btn-secondary">All Pause Requests </a>
+       <a href="{{ url_for('admin_customers') }}" class="btn-secondary">View All Customers</a>
 
     </div>
+    
+    
 </body>
 </html>
+{% endblock %}

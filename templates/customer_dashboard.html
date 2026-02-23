@@ -1,3 +1,6 @@
+{% extends "customer_base.html" %}
+{% block content %}
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -24,17 +27,15 @@
             <p><strong>Total Amount Due:</strong> ₹{{ current_month_bill }}</p>
         </div>
 
-        <div class="summary-card">
-            <h3>Total Paid</h3>
-            <p><strong>Amount Paid:</strong> ₹{{ total_paid }}</p>
-        </div>
+        
     </section>
 
     <section class="last-month-section">
         <h2>Last Month Bill ({{ last_month_name }})</h2>
         {% if last_month_bill %}
-            <p><strong>Amount:</strong> ₹{{ last_month_bill.amount }}</p>
-            <p><strong>Status:</strong> {{ "Paid" if last_month_bill.amount_status==2 else "Unpaid" }}</p>
+            <p><strong>Amount:</strong> ₹{{ '%.2f'|format(last_month_bill['amount']) }}</p>
+            {% set status = last_month_bill['amount_status']|int %}
+            <p><strong>Status:</strong> {{ 'Paid' if status == 1 else 'Unpaid' }}</p>
         {% else %}
             <p>No bill found.</p>
         {% endif %}
@@ -42,9 +43,10 @@
 
     <section class="actions">
         <a href="{{ url_for('view_all_bills') }}" class="btn-action">View All Bills</a>
-        <a href="{{ url_for('pause_request') }}" class="btn-action">Pause Delivery</a>
+        <a href="{{ url_for('customer_pause_request') }}" class="btn-action">Pause Delivery</a>
     </section>
 </main>
 
 </body>
 </html>
+{% endblock %}

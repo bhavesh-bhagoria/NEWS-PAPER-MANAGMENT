@@ -1,52 +1,191 @@
-<!DOCTYPE html>
+{% extends "admin_base.html" %}
+{% block content %}
+
+<!doctype html>
 <html>
 <head>
-    <title>All Bills - Admin</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <meta charset="utf-8">
+  <title>Admin - Bills</title>
+  <style>
+    body{
+      font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding:18px;
+      font-weight:normal;
+      margin:0
+    }
+    .container{max-width:900px;margin:0 auto}
+    h1{font-weight:normal}
+    .month-section{margin-bottom:28px}
+    .month-title{
+      font-size:20px;
+      margin:6px 0 12px;
+      color:#222;
+      font-weight:normal
+    }
+    .card{
+      border:1px solid #e0e0e0;
+      border-radius:8px;
+      padding:12px;
+      margin-bottom:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      background:#fff;
+      box-shadow:0 1px 2px rgba(0,0,0,0.03);
+      gap:15px
+    }
+    .card .left{flex:1;font-weight:normal}
+    .card .left .name{font-weight:normal}
+    .amount{
+      font-size:18px;
+      color:#000;
+      margin-top:6px;
+      font-weight:normal
+    }
+    .actions{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:flex-end;
+      flex-shrink:0
+    }
+    .btn{
+      display:inline-block;
+      padding:7px 12px;
+      border-radius:6px;
+      text-decoration:none;
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-weight:normal;
+      background:#000;
+    }
+    .btn:hover{background:#333;}
+
+    .status-pill{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:12px;
+      color:#fff;
+      font-weight:normal
+    }
+    .paid{background:#28a745}
+    .unpaid{background:#f10909}
+    .no-bills{color:#666;font-weight:normal}
+
+    .pagination{
+      margin-top:30px;
+      text-align:center;
+    }
+    .pagination a{
+      display:inline-block;
+      margin:4px;
+      padding:6px 12px;
+      border-radius:6px;
+      text-decoration:none;
+    }
+    .page-active{
+      background:#000;
+      color:#fff;
+    }
+    .page-normal{
+      background:#eee;
+      color:#000;
+    }
+    .page-nav{
+      background:#000;
+      color:#fff;
+    }
+  </style>
 </head>
+
 <body>
+  <div class="container">
 
-<div class="admin-container">
-    <div class="header">
-        <a href="{{ url_for('admin_dashboard') }}" class="back-btn">← Back</a>
-        <h2>All Bills</h2>
-    </div>
+    <h1>All Bills</h1>
 
-    <div class="tab-content">
-        {% if bills %}
-            {% for bill in bills %}
-            <div class="request-card">
-                <div class="request-info">
-                    <h4>{{ bill.bill_month }}</h4>
+    <a href="{{ url_for('admin_dashboard') }}" 
+       style="display:inline-block;margin-bottom:20px;padding:8px 14px;background:#000;color:#fff;border-radius:6px;text-decoration:none;font-weight:normal;">
+       ← Back to Dashboard
+    </a>
 
-                    <p><strong>Customer:</strong> {{ bill.name }}</p>
-                    <p><strong>Mobile:</strong> {{ bill.mobile_no }}</p>
+    {% if bills_grouped %}
+      {% for month, month_bills in bills_grouped.items() %}
+        <section class="month-section">
+          <div class="month-title">{{ month }}</div>
+          <div class="month-list">
 
-                    <p><strong>Amount:</strong> ₹{{ bill.amount }}</p>
-
-                    <p><strong>Status:</strong>
-                        {% if bill.amount_status == 2 %}
-                            <span class="badge-paid">PAID</span>
-                        {% else %}
-                            <span class="badge-unpaid">UNPAID</span>
-                        {% endif %}
-                    </p>
+            {% for b in month_bills %}
+              <div class="card">
+                <div class="left">
+                  <div class="name">
+                    {{ b.name }} — <small>{{ b.mobile_no }}</small>
+                  </div>
+                  <div class="amount">
+                    ₹{{ '%.2f'|format(b.amount) }}
+                  </div>
                 </div>
 
-                <div class="request-actions">
-                    {% if bill.amount_status != 2 %}
-                        <a href="{{ url_for('mark_paid', bill_id=bill.bill_id) }}" class="btn-small">
-                            Mark Paid
-                        </a>
+                <div class="actions">
+                  {% set st = (b['amount_status']|int) %}
+
+                  <div class="status-pill {{ 'paid' if st==1 else 'unpaid' }}">
+                    {{ 'Paid' if st==1 else 'Unpaid' }}
+                  </div>
+
+                  <a class="btn"
+                     href="{{ url_for('toggle_bill', bill_id=b.bill_id) }}">
+                    {% if st==1 %}
+                      Mark as Unpaid
+                    {% else %}
+                      Mark as Paid
                     {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <p class="no-requests">No bills found.</p>
-        {% endif %}
-    </div>
-</div>
+                  </a>
 
+                  <!-- ✅ DOWNLOAD PDF BUTTON ADDED -->
+                  <a class="btn"
+                     href="{{ url_for('download_customer_pdf', customer_id=b.customer_id) }}">
+                     Download PDF
+                  </a>
+
+                </div>
+              </div>
+            {% endfor %}
+
+          </div>
+        </section>
+      {% endfor %}
+    {% else %}
+      <p class="no-bills">No bills found.</p>
+    {% endif %}
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+
+      {% if page > 1 %}
+        <a href="{{ url_for('admin_bills', page=page-1) }}"
+           class="page-nav">
+           ← Previous Month
+        </a>
+      {% endif %}
+
+      <span style="margin:0 10px;">
+        Month {{ page }} of {{ total_pages }}
+      </span>
+
+      {% if page < total_pages %}
+        <a href="{{ url_for('admin_bills', page=page+1) }}"
+           class="page-nav">
+           Next Month →
+        </a>
+      {% endif %}
+
+    </div>
+    {% endif %}
+
+  </div>
 </body>
 </html>
+
+{% endblock %}

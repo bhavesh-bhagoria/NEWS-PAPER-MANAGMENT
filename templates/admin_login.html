@@ -3,29 +3,49 @@
 <head>
     <title>Agent Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_login.css') }}">
+
+    <style>
+        .error-box {
+            background-color: #ffe6e6;
+            color: #cc0000;
+            border: 1px solid #cc0000;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .error-box ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h2>Agent Login</h2>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
+
+        {% if errors %}
+            <div class="error-box">
+                <ul>
+                    {% for error in errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
         <form method="POST">
             <label>Username:</label>
-            <input type="text" name="username" required>
-            
+            <input type="text" name="username"
+                   value="{{ username or '' }}"
+                   required>
+
             <label>Password:</label>
             <input type="password" name="password" required>
-            
+
             <button type="submit">Login</button>
         </form>
-        
+
         <a href="{{ url_for('home') }}">Back to Home</a>
     </div>
 </body>
