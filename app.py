@@ -188,7 +188,7 @@ def generate_monthly_bills():
 
             bill_cursor = conn.cursor()
             bill_cursor.execute("""
-                SELECT bill_id FROM bills2
+                SELECT bill_id FROM bills
                 WHERE customer_id=%s AND bill_month=%s
             """, (customer_id, bill_month))
 
