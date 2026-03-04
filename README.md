@@ -2,7 +2,7 @@
 
 A web-based Newspaper Management System built using Flask.
 
-## Setup
+# Setup
 
 1. Create virtual environment
    python -m venv venv
