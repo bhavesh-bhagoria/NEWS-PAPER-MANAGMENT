@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
 </head>
 <body>
+
     <div class="container">
         <h1>Newspaper Management System</h1>
 
@@ -13,17 +14,31 @@
             <!-- Agent Section -->
             <div class="section">
                 <h3>Agent Panel</h3>
-                <a href="{{ url_for('admin_login') }}" class="btn">Agent Login</a><br>
-                <a href="{{ url_for('admin_register') }}" class="btn register-btn">Agent Register</a>
+
+                <a href="{{ url_for('admin_login') }}" class="btn">
+                    Agent Login
+                </a>
+
+                <div class="small-link">
+                    Not registered?
+                    <a href="{{ url_for('admin_register') }}">
+                        Click here to register
+                    </a>
+                </div>
             </div>
 
             <!-- Customer Section -->
             <div class="section">
                 <h3>Customer Panel</h3>
-                <a href="{{ url_for('customer_login') }}" class="btn">Customer Login</a>
+
+                <a href="{{ url_for('customer_login') }}" class="btn">
+                    Customer Login
+                </a>
+
             </div>
 
         </div>
     </div>
+
 </body>
 </html>

@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from db import get_db_connection
 from datetime import datetime, date
+import pandas as pd
 from datetime import datetime, timedelta
 import calendar
 import re
@@ -486,6 +487,73 @@ def admin_dashboard():
         current_month_name=current_month_name,
         previous_month_name=previous_month_name
     )
+
+@app.route('/delete_customer/<int:customer_id>', methods=['POST'])
+def delete_customer(customer_id):
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM customer_details WHERE customer_id = %s",
+        (customer_id,)
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return redirect(url_for('admin_customers'))
+
+
+
+@app.route("/admin/bulk_customer_upload")
+def bulk_customer_upload():
+    return render_template("admin_bulk_customer_upload.html")
+
+
+
+@app.route("/admin/upload_bulk_customers", methods=["POST"])
+def upload_bulk_customers():
+
+    file = request.files['file']
+    df = pd.read_csv(file)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    for _, row in df.iterrows():
+        cursor.execute(
+            "SELECT customer_id FROM customer_details WHERE mobile_no=%s",
+            (row['mobile_no'],)
+        )
+
+        exists = cursor.fetchone()
+
+        if not exists:
+            cursor.execute("""
+            INSERT INTO customer_details
+            (agent_id, name, password, mobile_no, area_locality,
+            landmark_building, flat_house_office_no, start_date)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                row['agent_id'],
+                row['name'],
+                row['password'],
+                row['mobile_no'],
+                row['area_locality'],
+                row['landmark_building'],
+                row['flat_house_office_no'],
+                row['start_date']
+            ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash("Bulk customers added successfully")
+    return redirect(url_for("admin_add_customer"))
 from datetime import datetime
  
 
@@ -625,6 +693,96 @@ def view_all_bills():
     conn.close()
 
     return render_template("view_all_bills.html", bills=bills)
+
+@app.route("/download_bill/<int:bill_id>")
+def download_bill_pdf(bill_id):
+
+    if "customer_id" not in session:
+        return redirect(url_for("customer_login"))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT 
+            b.bill_id,
+            b.bill_month,
+            b.amount,
+            b.days_active,
+            c.name AS customer_name,
+            a.username AS agent_name,
+            n.newspaper_name,
+            n.rate_per_day
+        FROM bills b
+        JOIN customer_details c 
+            ON b.customer_id = c.customer_id
+        JOIN agent_credentials a 
+            ON c.agent_id = a.agent_id
+        JOIN newspaper_details n 
+            ON c.customer_id = n.customer_id
+        WHERE b.bill_id = %s
+    """, (bill_id,))
+
+    bill = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if not bill:
+        return "Bill not found"
+
+    pdf = FPDF()
+    pdf.add_page()
+
+    # Header
+    pdf.set_font("Arial", "B", 18)
+    pdf.cell(0, 10, "NEWSPAPER BILL", 0, 1, "C")
+
+    pdf.ln(5)
+
+    # Bill details
+    pdf.set_font("Arial", "", 12)
+
+    pdf.cell(100, 8, f"Bill ID: {bill['bill_id']}", 0, 0)
+    pdf.cell(0, 8, f"Month: {bill['bill_month']}", 0, 1)
+
+    pdf.cell(100, 8, f"Customer: {bill['customer_name']}", 0, 0)
+    pdf.cell(0, 8, f"Agent: {bill['agent_name']}", 0, 1)
+
+    pdf.ln(10)
+
+    # Table Header
+    pdf.set_font("Arial", "B", 12)
+
+    pdf.cell(70, 10, "Newspaper", 1)
+    pdf.cell(30, 10, "Rate/Day", 1)
+    pdf.cell(30, 10, "Days", 1)
+    pdf.cell(40, 10, "Amount", 1)
+    pdf.ln()
+
+    # Table Data
+    pdf.set_font("Arial", "", 12)
+
+    pdf.cell(70, 10, bill["newspaper_name"], 1)
+    pdf.cell(30, 10, f"Rs.{bill['rate_per_day']}", 1, 0, "C")
+    pdf.cell(30, 10, str(bill["days_active"]), 1, 0, "C")
+    pdf.cell(40, 10, f"Rs.{bill['amount']}", 1, 0, "R")
+    pdf.ln()
+
+    pdf.ln(10)
+
+    # Total section
+    pdf.set_font("Arial", "B", 12)
+
+    pdf.cell(130, 10, "Total Amount", 1)
+    pdf.cell(40, 10, f"Rs.{bill['amount']}", 1, 0, "R")
+
+    # Generate PDF response
+    response = make_response(pdf.output(dest="S").encode("latin-1"))
+    response.headers.set("Content-Disposition", "attachment", filename=f"bill_{bill_id}.pdf")
+    response.headers.set("Content-Type", "application/pdf")
+
+    return response
 
 @app.route("/admin/bills")
 def admin_bills():
@@ -775,7 +933,7 @@ def download_customer_pdf(customer_id):
     pdf.cell(25, 10, "Bill ID", 1)
     pdf.cell(40, 10, "Month", 1)
     pdf.cell(30, 10, "Amount", 1)
-    pdf.cell(35, 10, "Status", 1)
+    
     pdf.ln()
 
     pdf.set_font("Arial", size=10)
@@ -784,8 +942,6 @@ def download_customer_pdf(customer_id):
         pdf.cell(25, 10, str(bill["bill_id"]), 1)
         pdf.cell(40, 10, bill["bill_month"], 1)
         pdf.cell(30, 10, str(bill["amount"]), 1)
-        status_text = "Paid" if bill["amount_status"] == 1 else "Unpaid"
-        pdf.cell(35, 10, status_text, 1)
         pdf.ln()
 
     response = make_response(pdf.output(dest="S").encode("latin-1"))

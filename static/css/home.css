@@ -29,7 +29,8 @@ h1 {
     gap: 20px;
 }
 
-.home-buttons a {
+/* Button style ONLY for .btn */
+.btn {
     display: block;
     padding: 15px 20px;
     background: #000;
@@ -40,7 +41,13 @@ h1 {
     transition: all 0.2s ease;
 }
 
-.home-buttons a:hover {
+.btn:hover {
     background: #333;
     transform: translateY(-2px);
+}
+
+/* Normal small link */
+.small-link {
+    font-size: 12px;
+    margin-top: 5px;
 }

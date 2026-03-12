@@ -12,20 +12,24 @@
             padding: 20px;
             margin: 0;
         }
+
         .container {
             max-width: 1000px;
             margin: 0 auto;
         }
+
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
         }
+
         h1 {
             margin: 0;
             color: #333;
         }
+
         .back-btn {
             padding: 8px 16px;
             background: #666;
@@ -34,30 +38,51 @@
             border-radius: 4px;
             font-size: 14px;
         }
+
         .back-btn:hover {
             background: #555;
         }
+
         .customers-list {
             display: flex;
             flex-direction: column;
             gap: 15px;
         }
+
         .customer-card {
             background: white;
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            position: relative;
         }
+
         .customer-card h3 {
             margin: 0 0 10px 0;
             color: #333;
             font-size: 16px;
         }
+
         .customer-card p {
             margin: 5px 0;
             color: #666;
             font-size: 14px;
         }
+
+        .delete-btn {
+            margin-top: 10px;
+            padding: 6px 12px;
+            background: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background: #c9302c;
+        }
+
         .no-customers {
             text-align: center;
             padding: 40px;
@@ -68,30 +93,49 @@
 <body>
 
 <div class="container">
-    <header>
-        <h1>All Customers</h1>
-        <a href="{{ url_for('admin_dashboard') }}" class="back-btn">Back</a>
-    </header>
 
-    {% if customers %}
-        <div class="customers-list">
-            {% for customer in customers %}
-                <div class="customer-card">
-                    <h3>{{ customer.name }}</h3>
-                    <p><strong>Mobile:</strong> {{ customer.mobile_no }}</p>
-                    <p><strong>Area:</strong> {{ customer.area_locality if customer.area_locality else 'N/A' }}</p>
-                    <p><strong>Landmark:</strong> {{ customer.landmark_building if customer.landmark_building else 'N/A' }}</p>
-                    <p><strong>Address:</strong> {{ customer.flat_house_office_no if customer.flat_house_office_no else 'N/A' }}</p>
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="no-customers">
-            <p>No customers found.</p>
-        </div>
-    {% endif %}
+<header>
+    <h1>All Customers</h1>
+    <a href="{{ url_for('admin_dashboard') }}" class="back-btn">Back</a>
+</header>
+
+{% if customers %}
+<div class="customers-list">
+
+{% for customer in customers %}
+
+<div class="customer-card">
+
+<h3>{{ customer.name }}</h3>
+
+<p><strong>Mobile:</strong> {{ customer.mobile_no }}</p>
+<p><strong>Area:</strong> {{ customer.area_locality if customer.area_locality else 'N/A' }}</p>
+<p><strong>Landmark:</strong> {{ customer.landmark_building if customer.landmark_building else 'N/A' }}</p>
+<p><strong>Address:</strong> {{ customer.flat_house_office_no if customer.flat_house_office_no else 'N/A' }}</p>
+
+<form action="{{ url_for('delete_customer', customer_id=customer.customer_id) }}" method="POST">
+    <button type="submit" class="delete-btn" onclick="return confirm('Delete this customer?')">
+        Delete Customer
+    </button>
+</form>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% else %}
+
+<div class="no-customers">
+<p>No customers found.</p>
+</div>
+
+{% endif %}
+
 </div>
 
 </body>
 </html>
+
 {% endblock %}

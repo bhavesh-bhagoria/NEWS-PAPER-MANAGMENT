@@ -56,6 +56,7 @@
 </head>
 <body>
 
+
 <div class="admin-container">
     <a href="{{ url_for('customer_dashboard') }}" class="back-btn">Back</a>
     <h2>All Bills</h2>
@@ -67,6 +68,12 @@
                     <h3>{{ bill.bill_month }}</h3>
                     <p>Amount: ₹{{ '%.2f'|format(bill.amount) }}</p>
                     <p>Status: {{ 'Paid' if bill['amount_status'] == 1 else 'Unpaid' }}</p>
+
+                    <a href="{{ url_for('download_bill_pdf', bill_id=bill.bill_id) }}" 
+                       class="download-btn">
+                       Download PDF
+                    </a>
+
                 </div>
             {% endfor %}
         {% else %}
@@ -75,6 +82,19 @@
     </div>
 </div>
 
-</body>
+<style>
+.download-btn{
+    display:inline-block;
+    margin-top:10px;
+    padding:6px 12px;
+    background:#2d2626;
+    color:white;
+    text-decoration:none;
+    border-radius:4px;
+}
+
+</style>
+
+
 </html>
 {% endblock %}
