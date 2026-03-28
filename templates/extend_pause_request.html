@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Extend Pause</title>
+
+<style>
+
+body{
+    margin:0;
+    padding:0;
+    font-family: Arial, sans-serif;
+    background:#ffffff;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.container{
+    width:350px;
+    padding:40px;
+    border:1px solid #000;
+    border-radius:8px;
+    background:#fff;
+}
+
+h2{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.pause-info{
+    border:1px solid #ddd;
+    padding:12px;
+    margin-bottom:20px;
+    font-size:14px;
+}
+
+.form-group{
+    display:flex;
+    flex-direction:column;
+}
+
+label{
+    margin-bottom:8px;
+    font-weight:bold;
+}
+
+input[type="date"]{
+    padding:10px;
+    border:1px solid #000;
+    border-radius:4px;
+    font-size:14px;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    margin-top:15px;
+    border:none;
+    background:#000;
+    color:#fff;
+    font-size:15px;
+    border-radius:4px;
+    cursor:pointer;
+}
+
+button:hover{
+    opacity:0.85;
+}
+
+.back-btn{
+    display:block;
+    text-align:center;
+    margin-top:15px;
+    text-decoration:none;
+    color:#000;
+    border:1px solid #000;
+    padding:10px;
+    border-radius:4px;
+}
+
+.back-btn:hover{
+    background:#000;
+    color:#fff;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Extend Pause</h2>
+
+<!-- Current Pause Period -->
+<div class="pause-info">
+    <strong>Current Pause Period</strong><br>
+    Start: {{ pause_start }} <br>
+    End: {{ pause_end }}
+</div>
+
+<form method="post">
+
+    <div class="form-group">
+        <label>New Pause End Date:</label>
+        <input type="date" name="pause_end" required min="{{ date.today() }}">
+    </div>
+
+    <button type="submit">Extend Pause</button>
+
+</form>
+
+<!-- Back Button -->
+<a href="{{ url_for('customer_dashboard') }}" class="back-btn">
+    Back to Dashboard
+</a>
+
+</div>
+
+</body>
+</html>

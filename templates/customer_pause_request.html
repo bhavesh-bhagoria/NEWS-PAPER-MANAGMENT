@@ -9,14 +9,7 @@
 </head>
 <body>
 
-<header>
-    <div class="header-left">
-        <h1>Pause Delivery Request</h1>
-    </div>
-    <div class="header-right">
-        <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
-    </div>
-</header>
+
 
 <main>
     <section class="pause-section">
@@ -55,6 +48,8 @@
             </form>
 
             <a href="{{ url_for('customer_dashboard') }}" class="btn-back">Back to Dashboard</a>
+            <a href="{{ url_for('extend_pause_request')}}" class="btn-back" >Extend previous pause request</a>
+
         </div>
     </section>
 </main>

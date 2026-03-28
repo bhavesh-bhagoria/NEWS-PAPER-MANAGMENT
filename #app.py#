@@ -791,6 +791,8 @@ def admin_bills():
 
     generate_monthly_bills()
 
+    page = request.args.get("page", 1, type=int)
+
     connection = get_db_connection()
     database_cursor = connection.cursor(dictionary=True)
 
@@ -836,7 +838,8 @@ def admin_bills():
                     break
             month_tuples.append((year_number, month_number, month_name_year))
         else:
-            month_tuples.append((0, 0, month_name_year))
+            month_tuples.append((0, 0, month_name_year)) 
+
 
     month_tuples_sorted = []
     while len(month_tuples) > 0:
@@ -849,26 +852,33 @@ def admin_bills():
         month_tuples_sorted.append(month_tuples[max_index])
         month_tuples.pop(max_index)
 
-    # ---- CHANGED: use month param instead of page ----
-    sorted_month_names = [t[2] for t in month_tuples_sorted]
 
-    selected_month = request.args.get("month", None)
-    if not selected_month or selected_month not in sorted_month_names:
-        selected_month = sorted_month_names[0] if sorted_month_names else None
+    total_pages = len(month_tuples_sorted)
+
+    if page < 1:
+        page = 1
+    if page > total_pages and total_pages > 0:
+        page = total_pages
 
     bills_grouped_dirty = {}
-    if selected_month:
-        bills_grouped_dirty[selected_month] = [
-            bill for bill in all_bills_result
-            if bill["bill_month"] == selected_month
-        ]
+
+    if total_pages > 0:
+        selected_month_tuple = month_tuples_sorted[page - 1]
+        month_name_year = selected_month_tuple[2]
+
+        bills_grouped_dirty[month_name_year] = []
+
+        for bill in all_bills_result:
+            if bill["bill_month"] == month_name_year:
+                bills_grouped_dirty[month_name_year].append(bill)
 
     return render_template(
         "admin_bills.html",
         bills_grouped=bills_grouped_dirty,
-        all_months=sorted_month_names,   # <-- pass all months for dropdown
-        selected_month=selected_month
+        page=page,
+        total_pages=total_pages
     )
+
 from fpdf import FPDF
 from flask import make_response
 
